@@ -10,9 +10,11 @@ uint32_t lastSent = 0;
 
 uint32_t lastTelemetry = 0;
 
+uint8_t  okToSendAuxillary = 0; // when set to 2 it is ok to send aux data next 
+uint8_t  auxillaryBuffer[8];
+uint8_t  auxillaryCount = 0;
+
 volatile uint8_t ppmAge = 0; // age of PPM data
-
-
 volatile uint16_t startPulse = 0;
 volatile uint8_t  ppmCounter = PPM_CHANNELS; // ignore data until first sync pulse
 
@@ -396,6 +398,10 @@ void loop(void)
     Red_LED_OFF;
   }
 
+  while ((auxillaryCount < 8) && Serial.available()) {
+    auxillaryBuffer[auxillaryCount++] = Serial.read();
+  }
+
   if (RF_Mode == Received) {
     uint8_t rx_buf[4];
     // got telemetry packet
@@ -405,6 +411,11 @@ void loop(void)
     spiSendAddress(0x7f);   // Send the package read command
     for (int16_t i = 0; i < 4; i++) {
       rx_buf[i] = spiReadData();
+    }
+    if (okToSendAuxillary==1) okToSendAuxillary=2;
+    if (okToSendAuxillary==3) {
+      auxillaryCount=0;
+      okToSendAuxillary=0;
     }
     // Serial.println(rx_buf[0]); // print rssi value
   }
@@ -430,27 +441,37 @@ void loop(void)
       }
 
       // Construct packet to be sent
-      if (FSstate == 2) {
-        tx_buf[0] = 0xF5; // save failsafe
-        Red_LED_ON
-      } else {
-        tx_buf[0] = 0x5E; // servo positions
-        Red_LED_OFF
+      if ((okToSendAuxillary == 2) && (auxillaryCount) && (FSstate != 2)) {
+        tx_buf[0] = 0xF7 + auxillaryCount; // 0xf8 - 0xff (1-8 bytes of aux data in this packet)
+        for (uint8_t c=0; c < auxillaryCount; c++) {
+          tx_buf[1+c]=auxillaryBuffer[c];
+        }
+        Serial.println(auxillaryCount);
+        okToSendAuxillary=3; // packet sent but not acked
+      } else { // normal channel packet
+        if (FSstate == 2) {
+          tx_buf[0] = 0xF5; // save failsafe
+          Red_LED_ON
+        } else {
+          tx_buf[0] = 0x5E; // servo positions
+          Red_LED_OFF
 
+        }
+
+        cli(); // disable interrupts when copying servo positions, to avoid race on 2 byte variable
+        tx_buf[1] = (PPM[0] & 0xff);
+        tx_buf[2] = (PPM[1] & 0xff);
+        tx_buf[3] = (PPM[2] & 0xff);
+        tx_buf[4] = (PPM[3] & 0xff);
+        tx_buf[5] = ((PPM[0] >> 8) & 3) | (((PPM[1] >> 8) & 3) << 2) | (((PPM[2] >> 8) & 3) << 4) | (((PPM[3] >> 8) & 3) << 6);
+        tx_buf[6] = (PPM[4] & 0xff);
+        tx_buf[7] = (PPM[5] & 0xff);
+        tx_buf[8] = (PPM[6] & 0xff);
+        tx_buf[9] = (PPM[7] & 0xff);
+        tx_buf[10] = ((PPM[4] >> 8) & 3) | (((PPM[5] >> 8) & 3) << 2) | (((PPM[6] >> 8) & 3) << 4) | (((PPM[7] >> 8) & 3) << 6);
+        sei();
+        okToSendAuxillary=1; // need ack packet before we can send
       }
-
-      cli(); // disable interrupts when copying servo positions, to avoid race on 2 byte variable
-      tx_buf[1] = (PPM[0] & 0xff);
-      tx_buf[2] = (PPM[1] & 0xff);
-      tx_buf[3] = (PPM[2] & 0xff);
-      tx_buf[4] = (PPM[3] & 0xff);
-      tx_buf[5] = ((PPM[0] >> 8) & 3) | (((PPM[1] >> 8) & 3) << 2) | (((PPM[2] >> 8) & 3) << 4) | (((PPM[3] >> 8) & 3) << 6);
-      tx_buf[6] = (PPM[4] & 0xff);
-      tx_buf[7] = (PPM[5] & 0xff);
-      tx_buf[8] = (PPM[6] & 0xff);
-      tx_buf[9] = (PPM[7] & 0xff);
-      tx_buf[10] = ((PPM[4] >> 8) & 3) | (((PPM[5] >> 8) & 3) << 2) | (((PPM[6] >> 8) & 3) << 4) | (((PPM[7] >> 8) & 3) << 6);
-      sei();
 
       //Green LED will be on during transmission
       Green_LED_ON ;

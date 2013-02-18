@@ -278,15 +278,18 @@ void loop()
       PPM[6] = rx_buf[8] + ((rx_buf[10] & 0x30) << 4);
       PPM[7] = rx_buf[9] + ((rx_buf[10] & 0xc0) << 2);
       sei();
-    }
-
-    if (rx_buf[0] == 0xF5) {
-      if (!fs_saved) {
-        save_failsafe_values();
-        fs_saved = 1;
+      if (rx_buf[0] == 0xF5) {
+        if (!fs_saved) {
+          save_failsafe_values();
+          fs_saved = 1;
+        }
+      } else if (fs_saved) {
+        fs_saved = 0;
       }
-    } else if (fs_saved) {
-      fs_saved = 0;
+    } else if (rx_buf[0] > 0xF7) { // got transparent serial data
+      for (uint8_t c=0; c<(tx_buf[0]-0xF7) ; c++) {
+        Serial.write(tx_buf[c]);
+      }
     }
 
     if (modem_params[bind_data.modem_params].flags & 0x01) {
