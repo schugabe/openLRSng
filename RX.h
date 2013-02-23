@@ -291,8 +291,8 @@ void loop()
         fs_saved = 0;
       }
     } else if (rx_buf[0] > 0xF7) { // got transparent serial data
-      for (uint8_t c=0; c<(tx_buf[0]-0xF7) ; c++) {
-        Serial.write(tx_buf[c]);
+      for (uint8_t c=0; c<(rx_buf[0]-0xF7) ; c++) {
+        Serial.write(rx_buf[c]);
       }
     }
 
