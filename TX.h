@@ -13,6 +13,7 @@ uint32_t lastTelemetry = 0;
 uint8_t  okToSendAuxillary = 0; // when set to 2 it is ok to send aux data next 
 uint8_t  auxillaryBuffer[8];
 uint8_t  auxillaryCount = 0;
+uint8_t  auxillaryHi = 0; // whether use high or low command (prevent data duplication in case of lost acks)
 
 volatile uint8_t ppmAge = 0; // age of PPM data
 volatile uint16_t startPulse = 0;
@@ -301,6 +302,7 @@ void loop(void)
     if (okToSendAuxillary==3) {
       auxillaryCount=0;
       okToSendAuxillary=0;
+      auxillaryHi^=1;
     }
     // Serial.println(rx_buf[0]); // print rssi value
   }
@@ -327,7 +329,7 @@ void loop(void)
 
       // Construct packet to be sent
       if ((okToSendAuxillary == 2) && (auxillaryCount) && (FSstate != 2)) {
-        tx_buf[0] = 0xF7 + auxillaryCount; // 0xf8 - 0xff (1-8 bytes of aux data in this packet)
+        tx_buf[0] = 0xEF + ((auxillaryHi)?8:0) + auxillaryCount; // 0xf0-0xf7 or 0xf8 - 0xff (1-8 bytes of aux data in this packet)
         for (uint8_t c=0; c < auxillaryCount; c++) {
           tx_buf[1+c]=auxillaryBuffer[c];
         }
@@ -335,7 +337,7 @@ void loop(void)
         okToSendAuxillary=3; // packet sent but not acked
       } else { // normal channel packet
         if (FSstate == 2) {
-          tx_buf[0] = 0xF5; // save failsafe
+          tx_buf[0] = 0x5F; // save failsafe
           Red_LED_ON
         } else {
           tx_buf[0] = 0x5E; // servo positions

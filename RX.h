@@ -23,6 +23,8 @@ boolean PPM_output = 0; // set if PPM output is desired
 uint8_t firstpack = 0;
 uint8_t lostpack = 0;
 
+uint8_t lastAuxillaryHi=0;
+
 boolean willhop = 0, fs_saved = 0;
 
 ISR(TIMER1_OVF_vect)
@@ -302,7 +304,7 @@ void loop()
       rx_buf[i] = spiReadData();
     }
 
-    if ((rx_buf[0] == 0x5E) || (rx_buf[0] == 0xF5)) {
+    if ((rx_buf[0] == 0x5E) || (rx_buf[0] == 0x5F)) {
       cli();
       PPM[0] = rx_buf[1] + ((rx_buf[5] & 0x03) << 8);
       PPM[1] = rx_buf[2] + ((rx_buf[5] & 0x0c) << 6);
@@ -313,7 +315,7 @@ void loop()
       PPM[6] = rx_buf[8] + ((rx_buf[10] & 0x30) << 4);
       PPM[7] = rx_buf[9] + ((rx_buf[10] & 0xc0) << 2);
       sei();
-      if (rx_buf[0] == 0xF5) {
+      if (rx_buf[0] == 0x5F) {
         if (!fs_saved) {
           save_failsafe_values();
           fs_saved = 1;
@@ -321,10 +323,12 @@ void loop()
       } else if (fs_saved) {
         fs_saved = 0;
       }
-    } else if (rx_buf[0] > 0xF7) { // got transparent serial data
-      for (uint8_t c=0; c<(rx_buf[0]-0xF7) ; c++) {
+    } else if ((rx_buf[0] >= 0xF0) && (lastAuxillaryHi != (rx_buf[0] & 0x08))) {
+      uint8_t bytes = (rx_buf[0] & 0x07) + 1;
+      for (uint8_t c = 0; c < bytes ; c++) {
         Serial.write(rx_buf[c]);
       }
+      lastAuxillaryHi = (rx_buf[0] & 0x08);
     }
 
     if (modem_params[bind_data.modem_params].flags & 0x01) {
