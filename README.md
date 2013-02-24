@@ -28,7 +28,8 @@ RECEIVER HW:
   
   CH1-CH8 are parallel PWM outputs for channel1-8 (50Hz)
   
-  To enable PPM mode connect a 'bind jumpper' between CH8 and GND. PPM is outputted on 6th column (CH5). In PPM mode channles 1-6 are available at CH1-CH4,CH6,CH7.
+  To enable PPM (combined) mode connect a jumpper between CH7-CH8. PWM channels 1-6 are available at CH1-CH4,CH6,CH7(which is jumppered to CH8)
+  NOTE: you can make the connection in the AVRISP header (MISO-MOSI) to have servo at CH7 (=channel6)
   
 SOFTWARE CONFIGURATION:
 =======================
@@ -91,3 +92,11 @@ RX:
   - Beacon (if enabled) automatically starts after 'deadtime' with no data from TX, the beacon will send three tone 'FM' modulated signal hearable on PMR channel 1. The signal starts with 500Hz @ 100mW and continues with 250Hz @ 15mW and 166Hz @ 1mW. The degrading signal allows to estimate distance.
     - you can use cheap PMR walkie to listen to this signal and using your body as shield determine the direction of it. Alternatively use a directional 433Mhz antenna.
 
+SPECIAL FUNCTIONS
+======= =========
+
+Both TX and RX can be used as spectrum analysers with the "openLRS spectrum analyser GUI). See http://www.rcgroups.com/forums/showthread.php?t=1617297
+
+TX: Put TX into binding mode and connect with GUI (may need to press update once). 
+
+RX: put jumpper on CH3-CH4. This will force the RX to act as spectrum scanner.
