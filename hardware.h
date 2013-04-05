@@ -27,12 +27,14 @@
 #define PPM_Signal_Interrupt PCINT1_vect
 #define PPM_Signal_Edge_Check (PINC & 0x20)==0x20
 
-void buzzerInit() {
+void buzzerInit()
+{
   pinMode(BUZZER, OUTPUT);
   digitalWrite(BUZZER, LOW);
 }
 
-void buzzerOn(uint16_t freq) {
+void buzzerOn(uint16_t freq)
+{
   if (freq) {
     digitalWrite(BUZZER,HIGH);
   } else {
@@ -89,12 +91,14 @@ void buzzerOn(uint16_t freq) {
 #define PPM_Signal_Interrupt PCINT2_vect
 #define PPM_Signal_Edge_Check (PIND & 0x20)==0x20
 
-void buzzerInit() {
+void buzzerInit()
+{
   pinMode(BUZZER, OUTPUT);
   digitalWrite(BUZZER, LOW);
 }
 
-void buzzerOn(uint16_t freq) {
+void buzzerOn(uint16_t freq)
+{
   if (freq) {
     digitalWrite(BUZZER,HIGH);
   } else {
@@ -151,12 +155,14 @@ void buzzerOn(uint16_t freq) {
 #define PPM_Signal_Interrupt PCINT2_vect
 #define PPM_Signal_Edge_Check (PIND & 0x08)==0x08
 
-void buzzerInit() {
+void buzzerInit()
+{
   pinMode(BUZZER, OUTPUT);
   digitalWrite(BUZZER, LOW);
 }
 
-void buzzerOn(uint16_t freq) {
+void buzzerOn(uint16_t freq)
+{
   if (freq) {
     digitalWrite(BUZZER,HIGH);
   } else {
@@ -206,6 +212,22 @@ void buzzerOn(uint16_t freq) {
 #endif
 #define BUZZER 6
 #define BTN 7
+void buzzerInit()
+{
+  pinMode(BUZZER, OUTPUT);
+  digitalWrite(BUZZER, LOW);
+}
+
+void buzzerOn(uint16_t freq)
+{
+  if (freq) {
+    digitalWrite(BUZZER,HIGH);
+  } else {
+    digitalWrite(BUZZER,LOW);
+  }
+}
+
+#define buzzerOff(foo) buzzerOn(0)
 #else
 #define PPM_OUT 9 // OCP1A
 #define RSSI_OUT 3 // PD3 OC2B
@@ -213,13 +235,20 @@ void buzzerOn(uint16_t freq) {
 void setup_RSSI_output()
 {
   pinMode(RSSI_OUT, OUTPUT);
+  digitalWrite(RSSI_OUT, LOW);
   TCCR2B = (1<<CS20);
-  TCCR2A = ((1<<WGM20) | (1<<COM2B1));
+  TCCR2A = (1<<WGM20);
 }
 
 void set_RSSI_output( uint8_t val )
 {
-  OCR2B = val;
+  if ((val == 0) || (val == 255)) {
+  TCCR2A &= ~(1<<COM2B1); // disable PWM output
+    digitalWrite(RSSI_OUT, (val == 0) ? LOW : HIGH);
+  } else {
+    OCR2B = val;
+    TCCR2A |= (1<<COM2B1);
+  }
 }
 
 #define PWM_1 5
@@ -298,18 +327,24 @@ const uint16_t PWM_MASK[8] = { PWM_1_MASK, PWM_2_MASK, PWM_3_MASK, PWM_4_MASK, P
 #define Red_LED 6
 #define Green_LED 5
 
-void buzzerInit() {
+void buzzerInit()
+{
   TCCR2A = (1<<WGM21); // mode=CTC
   TCCR2B = (1<<CS22) | (1<<CS20); // prescaler = 128
   pinMode(BUZZER, OUTPUT);
   digitalWrite(BUZZER, LOW);
 }
 
-void buzzerOn(uint16_t freq) {
+void buzzerOn(uint16_t freq)
+{
   if (freq) {
     uint32_t ocr = 125000L / freq;
-    if (ocr>255) ocr=255;
-    if (!ocr) ocr=1;
+    if (ocr>255) {
+      ocr=255;
+    }
+    if (!ocr) {
+      ocr=1;
+    }
     OCR2A = ocr;
     TCCR2A |= (1<<COM2B0); // enable output
   } else {
