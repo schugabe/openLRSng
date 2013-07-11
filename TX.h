@@ -90,7 +90,7 @@ void bindMode(void)
 {
   uint32_t prevsend = millis();
   init_rfm(1);
-
+  Green_LED_ON;
   while (Serial.available()) {
     Serial.read();    // flush serial
   }
@@ -98,10 +98,10 @@ void bindMode(void)
   while (1) {
     if (millis() - prevsend > 200) {
       prevsend = millis();
-      Green_LED_ON;
+      
       buzzerOn(BZ_FREQ);
       tx_packet((uint8_t*)&bind_data, sizeof(bind_data));
-      Green_LED_OFF;
+      
       buzzerOff();
     }
 
@@ -257,12 +257,12 @@ void setup(void)
 
   buzzerOn(BZ_FREQ);
   digitalWrite(BTN, HIGH);
-  Red_LED_ON ;
+  //Red_LED_ON ;
   delay(100);
 
   checkButton();
 
-  Red_LED_OFF;
+  //Red_LED_OFF;
   buzzerOff();
 
   ppmAge = 255;
@@ -317,10 +317,10 @@ void loop(void)
       // Construct packet to be sent
       if (FSstate == 2) {
         tx_buf[0] = 0xF5; // save failsafe
-        Red_LED_ON
+        //Red_LED_ON
       } else {
         tx_buf[0] = 0x5E; // servo positions
-        Red_LED_OFF
+        //Red_LED_OFF
 
       }
 
@@ -329,7 +329,7 @@ void loop(void)
       sei();
 
       //Green LED will be on during transmission
-      Green_LED_ON ;
+      //Green_LED_ON ;
 
       // Send the data over RF
       rfmSetChannel(bind_data.hopchannel[RF_channel]);
@@ -351,7 +351,7 @@ void loop(void)
 
     } else {
       if (ppmAge == 8) {
-        Red_LED_ON
+        Green_LED_ON ;
       }
 
       ppmAge = 9;
@@ -361,7 +361,7 @@ void loop(void)
   }
 
   //Green LED will be OFF
-  Green_LED_OFF;
+  //Green_LED_OFF;
 
   checkFS();
 }
